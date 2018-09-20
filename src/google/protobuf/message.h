@@ -165,8 +165,13 @@ namespace expr {
 class CelMapReflectionFriend;  // field_backed_map_impl.cc
 }
 
+namespace internal {
+class MapFieldPrinterHelper;   // text_format.cc
+}
+
 
 namespace internal {
+class ReflectionAccessor;  // message.cc
 class ReflectionOps;     // reflection_ops.h
 class MapKeySorter;      // wire_format.cc
 class WireFormat;        // wire_format.h
@@ -195,7 +200,7 @@ struct Metadata {
 // optimized for speed will want to override these with faster implementations,
 // but classes optimized for code size may be happy with keeping them.  See
 // the optimize_for option in descriptor.proto.
-class LIBPROTOBUF_EXPORT Message : public MessageLite {
+class PROTOBUF_EXPORT Message : public MessageLite {
  public:
   inline Message() {}
   virtual ~Message() {}
@@ -238,11 +243,11 @@ class LIBPROTOBUF_EXPORT Message : public MessageLite {
   // This is much, much slower than IsInitialized() as it is implemented
   // purely via reflection.  Generally, you should not call this unless you
   // have already determined that an error exists by calling IsInitialized().
-  void FindInitializationErrors(std::vector<string>* errors) const;
+  void FindInitializationErrors(std::vector<std::string>* errors) const;
 
   // Like FindInitializationErrors, but joins all the strings, delimited by
   // commas, and returns them.
-  string InitializationErrorString() const override;
+  std::string InitializationErrorString() const override;
 
   // Clears all unknown fields from this message and all embedded messages.
   // Normally, if unknown tag numbers are encountered when parsing a message,
@@ -266,18 +271,18 @@ class LIBPROTOBUF_EXPORT Message : public MessageLite {
   // fields defined for the proto.
   virtual size_t SpaceUsedLong() const;
 
-  GOOGLE_PROTOBUF_DEPRECATED_MSG("Please use SpaceUsedLong() instead")
+  PROTOBUF_DEPRECATED_MSG("Please use SpaceUsedLong() instead")
   int SpaceUsed() const { return internal::ToIntSize(SpaceUsedLong()); }
 
   // Debugging & Testing----------------------------------------------
 
   // Generates a human readable form of this message, useful for debugging
   // and other purposes.
-  string DebugString() const;
+  std::string DebugString() const;
   // Like DebugString(), but with less whitespace.
-  string ShortDebugString() const;
+  std::string ShortDebugString() const;
   // Like DebugString(), but do not escape UTF-8 byte sequences.
-  string Utf8DebugString() const;
+  std::string Utf8DebugString() const;
   // Convenience function useful in GDB.  Prints DebugString() to stdout.
   void PrintDebugString() const;
 
@@ -314,7 +319,7 @@ class LIBPROTOBUF_EXPORT Message : public MessageLite {
   // These methods are pure-virtual in MessageLite, but Message provides
   // reflection-based default implementations.
 
-  string GetTypeName() const override;
+  std::string GetTypeName() const override;
   void Clear() override;
   bool IsInitialized() const override;
   void CheckTypeAndMergeFrom(const MessageLite& other) override;
@@ -426,7 +431,7 @@ class MutableRepeatedFieldRef;
 // double the message's memory footprint, probably worse.  Allocating the
 // objects on-demand, on the other hand, would be expensive and prone to
 // memory leaks.  So, instead we ended up with this flat interface.
-class LIBPROTOBUF_EXPORT Reflection {
+class PROTOBUF_EXPORT Reflection {
  public:
   inline Reflection() {}
   virtual ~Reflection();
@@ -447,7 +452,7 @@ class LIBPROTOBUF_EXPORT Reflection {
   // Estimate the amount of memory used by the message object.
   virtual size_t SpaceUsedLong(const Message& message) const = 0;
 
-  GOOGLE_PROTOBUF_DEPRECATED_MSG("Please use SpaceUsedLong() instead")
+  PROTOBUF_DEPRECATED_MSG("Please use SpaceUsedLong() instead")
   int SpaceUsed(const Message& message) const {
     return internal::ToIntSize(SpaceUsedLong(message));
   }
@@ -544,7 +549,7 @@ class LIBPROTOBUF_EXPORT Reflection {
                            const FieldDescriptor* field) const = 0;
   virtual bool   GetBool  (const Message& message,
                            const FieldDescriptor* field) const = 0;
-  virtual string GetString(const Message& message,
+  virtual std::string GetString(const Message& message,
                            const FieldDescriptor* field) const = 0;
   virtual const EnumValueDescriptor* GetEnum(
       const Message& message, const FieldDescriptor* field) const = 0;
@@ -577,9 +582,9 @@ class LIBPROTOBUF_EXPORT Reflection {
   //   a newly-constructed string, though, it's just as fast and more readable
   //   to use code like:
   //     string str = reflection->GetString(message, field);
-  virtual const string& GetStringReference(const Message& message,
+  virtual const std::string& GetStringReference(const Message& message,
                                            const FieldDescriptor* field,
-                                           string* scratch) const = 0;
+                                           std::string* scratch) const = 0;
 
 
   // Singular field mutators -----------------------------------------
@@ -601,7 +606,7 @@ class LIBPROTOBUF_EXPORT Reflection {
                          const FieldDescriptor* field, bool   value) const = 0;
   virtual void SetString(Message* message,
                          const FieldDescriptor* field,
-                         const string& value) const = 0;
+                         const std::string& value) const = 0;
   virtual void SetEnum  (Message* message,
                          const FieldDescriptor* field,
                          const EnumValueDescriptor* value) const = 0;
@@ -672,7 +677,7 @@ class LIBPROTOBUF_EXPORT Reflection {
   virtual bool   GetRepeatedBool  (const Message& message,
                                    const FieldDescriptor* field,
                                    int index) const = 0;
-  virtual string GetRepeatedString(const Message& message,
+  virtual std::string GetRepeatedString(const Message& message,
                                    const FieldDescriptor* field,
                                    int index) const = 0;
   virtual const EnumValueDescriptor* GetRepeatedEnum(
@@ -691,9 +696,9 @@ class LIBPROTOBUF_EXPORT Reflection {
       const FieldDescriptor* field, int index) const = 0;
 
   // See GetStringReference(), above.
-  virtual const string& GetRepeatedStringReference(
+  virtual const std::string& GetRepeatedStringReference(
       const Message& message, const FieldDescriptor* field,
-      int index, string* scratch) const = 0;
+      int index, std::string* scratch) const = 0;
 
 
   // Repeated field mutators -----------------------------------------
@@ -722,7 +727,7 @@ class LIBPROTOBUF_EXPORT Reflection {
                                  int index, bool   value) const = 0;
   virtual void SetRepeatedString(Message* message,
                                  const FieldDescriptor* field,
-                                 int index, const string& value) const = 0;
+                                 int index, const std::string& value) const = 0;
   virtual void SetRepeatedEnum(Message* message,
                                const FieldDescriptor* field, int index,
                                const EnumValueDescriptor* value) const = 0;
@@ -761,7 +766,7 @@ class LIBPROTOBUF_EXPORT Reflection {
                          const FieldDescriptor* field, bool   value) const = 0;
   virtual void AddString(Message* message,
                          const FieldDescriptor* field,
-                         const string& value) const = 0;
+                         const std::string& value) const = 0;
   virtual void AddEnum  (Message* message,
                          const FieldDescriptor* field,
                          const EnumValueDescriptor* value) const = 0;
@@ -841,8 +846,7 @@ class LIBPROTOBUF_EXPORT Reflection {
   //
   // for T = Cord and all protobuf scalar types except enums.
   template <typename T>
-  GOOGLE_PROTOBUF_DEPRECATED_MSG(
-      "Please use GetRepeatedFieldRef() instead")
+  PROTOBUF_DEPRECATED_MSG("Please use GetRepeatedFieldRef() instead")
   const RepeatedField<T>& GetRepeatedField(const Message&,
                                            const FieldDescriptor*) const;
 
@@ -850,8 +854,7 @@ class LIBPROTOBUF_EXPORT Reflection {
   //
   // for T = Cord and all protobuf scalar types except enums.
   template <typename T>
-  GOOGLE_PROTOBUF_DEPRECATED_MSG(
-      "Please use GetMutableRepeatedFieldRef() instead")
+  PROTOBUF_DEPRECATED_MSG("Please use GetMutableRepeatedFieldRef() instead")
   RepeatedField<T>* MutableRepeatedField(Message*,
                                          const FieldDescriptor*) const;
 
@@ -860,8 +863,7 @@ class LIBPROTOBUF_EXPORT Reflection {
   // for T = string, google::protobuf::internal::StringPieceField
   //         google::protobuf::Message & descendants.
   template <typename T>
-  GOOGLE_PROTOBUF_DEPRECATED_MSG(
-      "Please use GetRepeatedFieldRef() instead")
+  PROTOBUF_DEPRECATED_MSG("Please use GetRepeatedFieldRef() instead")
   const RepeatedPtrField<T>& GetRepeatedPtrField(const Message&,
                                                  const FieldDescriptor*) const;
 
@@ -870,8 +872,7 @@ class LIBPROTOBUF_EXPORT Reflection {
   // for T = string, google::protobuf::internal::StringPieceField
   //         google::protobuf::Message & descendants.
   template <typename T>
-  GOOGLE_PROTOBUF_DEPRECATED_MSG(
-      "Please use GetMutableRepeatedFieldRef() instead")
+  PROTOBUF_DEPRECATED_MSG("Please use GetMutableRepeatedFieldRef() instead")
   RepeatedPtrField<T>* MutableRepeatedPtrField(Message*,
                                                const FieldDescriptor*) const;
 
@@ -880,7 +881,7 @@ class LIBPROTOBUF_EXPORT Reflection {
   // Try to find an extension of this message type by fully-qualified field
   // name.  Returns NULL if no extension is known for this name or number.
   virtual const FieldDescriptor* FindKnownExtensionByName(
-      const string& name) const = 0;
+      const std::string& name) const = 0;
 
   // Try to find an extension of this message type by field number.
   // Returns NULL if no extension is known for this name or number.
@@ -989,6 +990,9 @@ class LIBPROTOBUF_EXPORT Reflection {
   friend class internal::MapKeySorter;
   friend class internal::WireFormat;
   friend class internal::ReflectionOps;
+  // Needed for implementing text format for map.
+  friend class internal::MapFieldPrinterHelper;
+  friend class internal::ReflectionAccessor;
 
   // Special version for specialized implementations of string.  We can't call
   // MutableRawRepeatedField directly here because we don't have access to
@@ -1059,7 +1063,7 @@ class LIBPROTOBUF_EXPORT Reflection {
 };
 
 // Abstract interface for a factory for message objects.
-class LIBPROTOBUF_EXPORT MessageFactory {
+class PROTOBUF_EXPORT MessageFactory {
  public:
   inline MessageFactory() {}
   virtual ~MessageFactory();
@@ -1122,16 +1126,15 @@ class LIBPROTOBUF_EXPORT MessageFactory {
   GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(MessageFactory);
 };
 
-#define DECLARE_GET_REPEATED_FIELD(TYPE)                         \
-template<>                                                       \
-LIBPROTOBUF_EXPORT                                               \
-const RepeatedField<TYPE>& Reflection::GetRepeatedField<TYPE>(   \
-    const Message& message, const FieldDescriptor* field) const; \
-                                                                 \
-template<>                                                       \
-LIBPROTOBUF_EXPORT                                               \
-RepeatedField<TYPE>* Reflection::MutableRepeatedField<TYPE>(     \
-    Message* message, const FieldDescriptor* field) const;
+#define DECLARE_GET_REPEATED_FIELD(TYPE)                                       \
+  template <>                                                                  \
+  PROTOBUF_EXPORT const RepeatedField<TYPE>&                                   \
+  Reflection::GetRepeatedField<TYPE>(const Message& message,                   \
+                                     const FieldDescriptor* field) const;      \
+                                                                               \
+  template <>                                                                  \
+  PROTOBUF_EXPORT RepeatedField<TYPE>* Reflection::MutableRepeatedField<TYPE>( \
+      Message * message, const FieldDescriptor* field) const;
 
 DECLARE_GET_REPEATED_FIELD(int32)
 DECLARE_GET_REPEATED_FIELD(int64)
@@ -1198,16 +1201,16 @@ T dynamic_cast_if_available(Message* from) {
 // Such a type presumably is a descendant of google::protobuf::Message.
 
 template<>
-inline const RepeatedPtrField<string>& Reflection::GetRepeatedPtrField<string>(
+inline const RepeatedPtrField<std::string>& Reflection::GetRepeatedPtrField<std::string>(
     const Message& message, const FieldDescriptor* field) const {
-  return *static_cast<RepeatedPtrField<string>* >(
+  return *static_cast<RepeatedPtrField<std::string>* >(
       MutableRawRepeatedString(const_cast<Message*>(&message), field, true));
 }
 
 template<>
-inline RepeatedPtrField<string>* Reflection::MutableRepeatedPtrField<string>(
+inline RepeatedPtrField<std::string>* Reflection::MutableRepeatedPtrField<std::string>(
     Message* message, const FieldDescriptor* field) const {
-  return static_cast<RepeatedPtrField<string>* >(
+  return static_cast<RepeatedPtrField<std::string>* >(
       MutableRawRepeatedString(message, field, true));
 }
 
