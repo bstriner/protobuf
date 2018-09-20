@@ -58,6 +58,8 @@
 #error "You cannot SWIG proto headers"
 #endif
 
+#undef GetMessage
+
 namespace upb {
 namespace google_opensource {
 class GMR_Handlers;

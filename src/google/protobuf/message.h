@@ -132,6 +132,8 @@
 #error "You cannot SWIG proto headers"
 #endif
 
+#undef GetMessage
+
 namespace google {
 namespace protobuf {
 
